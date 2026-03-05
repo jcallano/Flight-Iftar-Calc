@@ -5,6 +5,7 @@ import { calculateTimes, calculateFlightTimes } from './lib/calculator';
 import type { IslamicMethod, IftarCalculationResult, FlightCalculationResult } from './lib/calculator';
 import { OMAN_AIR_AIRPORTS } from './lib/airports';
 import { getDeviceType } from './lib/device';
+import Map from './components/Map';
 
 function App() {
   const [mode, setMode] = useState<'single' | 'flight'>('flight');
@@ -348,6 +349,16 @@ function App() {
                 </div>
               </div>
 
+              {mode === 'flight' && flightResult?.fajr && flightResult.fajrCoords && (
+                <Map
+                  origin={OMAN_AIR_AIRPORTS.find(a => a.iata === originIata)!}
+                  destination={OMAN_AIR_AIRPORTS.find(a => a.iata === destIata)!}
+                  eventPoint={flightResult.fajrCoords}
+                  label="Estimated Position"
+                  color="#6366f1"
+                />
+              )}
+
               <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center">
                 <div className="text-[9px] font-bold text-slate-500">DIFF VS GROUND</div>
                 <div className="text-[11px] font-black text-indigo-400">-{mode === 'flight' && flightResult?.fajr && flightResult?.groundFajrAtCoords ? Math.round((flightResult.groundFajrAtCoords.getTime() - flightResult.fajr.getTime()) / 60000) : result?.offsetMins} MIN EARLY</div>
@@ -376,6 +387,16 @@ function App() {
                   </span>
                 </div>
               </div>
+
+              {mode === 'flight' && flightResult?.maghrib && flightResult.maghribCoords && (
+                <Map
+                  origin={OMAN_AIR_AIRPORTS.find(a => a.iata === originIata)!}
+                  destination={OMAN_AIR_AIRPORTS.find(a => a.iata === destIata)!}
+                  eventPoint={flightResult.maghribCoords}
+                  label="Estimated Position"
+                  color="#f59e0b"
+                />
+              )}
 
               <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center">
                 <div className="text-[9px] font-bold text-slate-500">DIFF VS GROUND</div>
