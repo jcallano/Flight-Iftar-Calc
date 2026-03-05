@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Plane, Moon, Sun, MapPin, Info, Download, Navigation, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plane, Moon, Sun, MapPin, Info, Download, Navigation, ChevronUp, ChevronDown, Map as MapIcon, X } from 'lucide-react';
 import { parseFMSCoordinates } from './lib/parser';
 import { calculateTimes, calculateFlightTimes } from './lib/calculator';
 import type { IslamicMethod, IftarCalculationResult, FlightCalculationResult } from './lib/calculator';
 import { OMAN_AIR_AIRPORTS } from './lib/airports';
 import { getDeviceType } from './lib/device';
 import Map from './components/Map';
+import { ReloadPrompt } from './components/ReloadPrompt';
 
 function App() {
   const [mode, setMode] = useState<'single' | 'flight'>('flight');
   const [device] = useState(getDeviceType());
+  const [showFlightMap, setShowFlightMap] = useState<boolean>(false);
+  const [showSuhoorMap, setShowSuhoorMap] = useState<boolean>(false);
+  const [showIftarMap, setShowIftarMap] = useState<boolean>(false);
 
   // Single Point State
   const [fmsInput, setFmsInput] = useState<string>('');
@@ -61,6 +65,10 @@ function App() {
   };
 
   useEffect(() => {
+    setShowFlightMap(false);
+    setShowSuhoorMap(false);
+    setShowIftarMap(false);
+
     if (mode === 'single') {
       let lat: number, lng: number;
 
@@ -329,13 +337,24 @@ function App() {
 
             {/* Always show flight map in flight mode */}
             {mode === 'flight' && flightResult && originIata && destIata && (
-              <Map
-                origin={OMAN_AIR_AIRPORTS.find(a => a.iata === originIata)!}
-                destination={OMAN_AIR_AIRPORTS.find(a => a.iata === destIata)!}
-                eventPoint={flightResult.maghribCoords || flightResult.fajrCoords || null}
-                label={flightResult.maghribCoords ? "Iftar Position" : flightResult.fajrCoords ? "Suhoor Position" : "Flight Path"}
-                color={flightResult.maghribCoords ? "#f59e0b" : flightResult.fajrCoords ? "#6366f1" : "transparent"}
-              />
+              <div className="glass-panel p-3 rounded-2xl flex flex-col gap-2 border border-slate-800">
+                <button
+                  onClick={() => setShowFlightMap(!showFlightMap)}
+                  className="flex items-center justify-center gap-2 w-full py-2 bg-slate-800/50 hover:bg-slate-800 active:scale-95 text-slate-300 font-bold rounded-xl transition-all text-xs"
+                >
+                  {showFlightMap ? <X className="w-4 h-4" /> : <MapIcon className="w-4 h-4" />}
+                  {showFlightMap ? 'HIDE MAP' : 'VIEW FLIGHT PATH MAP'}
+                </button>
+                {showFlightMap && (
+                  <Map
+                    origin={OMAN_AIR_AIRPORTS.find(a => a.iata === originIata)!}
+                    destination={OMAN_AIR_AIRPORTS.find(a => a.iata === destIata)!}
+                    eventPoint={flightResult.maghribCoords || flightResult.fajrCoords || null}
+                    label={flightResult.maghribCoords ? "Iftar Position" : flightResult.fajrCoords ? "Suhoor Position" : "Flight Path"}
+                    color={flightResult.maghribCoords ? "#f59e0b" : flightResult.fajrCoords ? "#6366f1" : "transparent"}
+                  />
+                )}
+              </div>
             )}
 
             {/* Suhoor Card */}
@@ -363,13 +382,24 @@ function App() {
                 </div>
 
                 {mode === 'single' && result?.fajr && !manualCoords && selectedAirport && (
-                  <Map
-                    origin={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
-                    destination={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
-                    eventPoint={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
-                    label="Airport Location"
-                    color="#6366f1"
-                  />
+                  <div className="mt-2 w-full">
+                    <button
+                      onClick={() => setShowSuhoorMap(!showSuhoorMap)}
+                      className="flex items-center justify-center gap-2 w-full py-1.5 bg-slate-800/40 hover:bg-slate-800 active:scale-95 text-indigo-300 font-bold rounded-lg transition-all text-[10px] uppercase tracking-wider"
+                    >
+                      {showSuhoorMap ? <X className="w-3 h-3" /> : <MapIcon className="w-3 h-3" />}
+                      {showSuhoorMap ? 'HIDE MAP' : 'VIEW ON MAP'}
+                    </button>
+                    {showSuhoorMap && (
+                      <Map
+                        origin={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                        destination={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                        eventPoint={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                        label="Airport Location"
+                        color="#6366f1"
+                      />
+                    )}
+                  </div>
                 )}
 
                 <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center">
@@ -404,13 +434,24 @@ function App() {
                 </div>
 
                 {mode === 'single' && result?.maghrib && !manualCoords && selectedAirport && (
-                  <Map
-                    origin={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
-                    destination={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
-                    eventPoint={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
-                    label="Airport Location"
-                    color="#f59e0b"
-                  />
+                  <div className="mt-2 w-full">
+                    <button
+                      onClick={() => setShowIftarMap(!showIftarMap)}
+                      className="flex items-center justify-center gap-2 w-full py-1.5 bg-slate-800/40 hover:bg-slate-800 active:scale-95 text-amber-500 font-bold rounded-lg transition-all text-[10px] uppercase tracking-wider"
+                    >
+                      {showIftarMap ? <X className="w-3 h-3" /> : <MapIcon className="w-3 h-3" />}
+                      {showIftarMap ? 'HIDE MAP' : 'VIEW ON MAP'}
+                    </button>
+                    {showIftarMap && (
+                      <Map
+                        origin={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                        destination={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                        eventPoint={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                        label="Airport Location"
+                        color="#f59e0b"
+                      />
+                    )}
+                  </div>
                 )}
 
                 <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center">
@@ -440,6 +481,7 @@ function App() {
           </div>
         </footer>
       </div>
+      <ReloadPrompt />
     </div>
   );
 }

@@ -10,8 +10,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt', // Enables manual control over updates
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,ts,tsx}'] // Aggressive caching for offline
+      },
       manifest: {
         name: 'Iftar Time Calculator',
         short_name: 'Iftar Calc',
