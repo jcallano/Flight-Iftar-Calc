@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plane, Moon, Sun, MapPin, Info, Download, Navigation } from 'lucide-react';
+import { Plane, Moon, Sun, MapPin, Info, Download, Navigation, ChevronUp, ChevronDown } from 'lucide-react';
 import { parseFMSCoordinates } from './lib/parser';
 import { calculateTimes, calculateFlightTimes } from './lib/calculator';
 import type { IslamicMethod, IftarCalculationResult, FlightCalculationResult } from './lib/calculator';
@@ -127,9 +127,13 @@ function App() {
     }
   }, [mode, fmsInput, selectedAirport, manualCoords, originIata, destIata, departureTime, arrivalTime, flightLevel, method, selectedDate]);
 
-  const formatUTC = (date: Date | null) => {
+  const formatZ = (date: Date | null) => {
     if (!date) return '--:--';
     return date.toISOString().substring(11, 16) + ' Z';
+  };
+
+  const adjustFL = (amt: number) => {
+    setFlightLevel(prev => Math.max(0, Math.min(500, prev + amt)));
   };
 
   return (
@@ -153,25 +157,29 @@ function App() {
               <Plane className="w-8 h-8 text-amber-500" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1">Flight Iftar Calc</h1>
-          <p className="text-slate-400 text-xs uppercase tracking-widest font-semibold">Oman Air Edition</p>
+          <h1 className="text-2xl font-bold text-white mb-1 tracking-tight">FLIGHT IFTAR CALC</h1>
+          <div className="flex items-center justify-center gap-2">
+            <p className="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold">Oman Air Edition</p>
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
+            <p className="text-indigo-400 text-[10px] font-bold">ZULU TIME (24H)</p>
+          </div>
         </header>
 
         {/* Mode Toggle */}
-        <div className="bg-slate-800/50 p-1 rounded-xl flex gap-1 border border-slate-700">
+        <div className="bg-slate-800/50 p-1 rounded-xl flex gap-1 border border-slate-700/50">
           <button
             onClick={() => setMode('flight')}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${mode === 'flight' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${mode === 'flight' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
           >
             <Navigation className="w-4 h-4" />
-            Flight Path
+            FLIGHT PATH
           </button>
           <button
             onClick={() => setMode('single')}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${mode === 'single' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${mode === 'single' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
           >
             <MapPin className="w-4 h-4" />
-            Single Point
+            SINGLE POINT
           </button>
         </div>
 
@@ -183,21 +191,21 @@ function App() {
               {/* Origin / Dest */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Origin</label>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 ml-1 tracking-wider">Origin</label>
                   <select
                     value={originIata}
                     onChange={e => setOriginIata(e.target.value)}
-                    className="input-field w-full rounded-xl px-3 py-2.5 text-sm bg-slate-900/50 border-slate-700 outline-none"
+                    className="input-field w-full rounded-xl px-3 py-2.5 text-sm bg-slate-900 border-slate-700 outline-none font-bold"
                   >
                     {OMAN_AIR_AIRPORTS.map(a => <option key={a.iata} value={a.iata}>{a.iata} - {a.city}</option>)}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Destination</label>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 ml-1 tracking-wider">Dest</label>
                   <select
                     value={destIata}
                     onChange={e => setDestIata(e.target.value)}
-                    className="input-field w-full rounded-xl px-3 py-2.5 text-sm bg-slate-900/50 border-slate-700 outline-none"
+                    className="input-field w-full rounded-xl px-3 py-2.5 text-sm bg-slate-900 border-slate-700 outline-none font-bold"
                   >
                     {OMAN_AIR_AIRPORTS.map(a => <option key={a.iata} value={a.iata}>{a.iata} - {a.city}</option>)}
                   </select>
@@ -207,21 +215,21 @@ function App() {
               {/* Times */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Departure (Local)</label>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Departure (Z)</label>
                   <input
                     type="datetime-local"
                     value={departureTime}
                     onChange={e => setDepartureTime(e.target.value)}
-                    className="input-field w-full rounded-xl px-3 py-2 text-xs bg-slate-900/50 border-slate-700 text-slate-200"
+                    className="input-field w-full rounded-xl px-3 py-2 text-xs bg-slate-900 border-slate-700 text-slate-200 font-mono"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Arrival (Local)</label>
+                  <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Arrival (Z)</label>
                   <input
                     type="datetime-local"
                     value={arrivalTime}
                     onChange={e => setArrivalTime(e.target.value)}
-                    className="input-field w-full rounded-xl px-3 py-2 text-xs bg-slate-900/50 border-slate-700 text-slate-200"
+                    className="input-field w-full rounded-xl px-3 py-2 text-xs bg-slate-900 border-slate-700 text-slate-200 font-mono"
                   />
                 </div>
               </div>
@@ -234,9 +242,9 @@ function App() {
                   <label className="text-[10px] uppercase font-bold text-slate-500">Location</label>
                   <button
                     onClick={() => setManualCoords(!manualCoords)}
-                    className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
+                    className="text-[10px] font-extrabold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-tight"
                   >
-                    {manualCoords ? 'USE AIRPORT LIST' : 'ENTER COORDINATES'}
+                    {manualCoords ? 'AIRPORT LIST' : 'FMS COORDS'}
                   </button>
                 </div>
 
@@ -246,13 +254,13 @@ function App() {
                     value={fmsInput}
                     onChange={e => setFmsInput(e.target.value)}
                     placeholder="N4038.5 W07346.8"
-                    className="input-field w-full rounded-xl px-4 py-3 text-base placeholder-slate-600"
+                    className="input-field w-full rounded-xl px-4 py-3 text-base placeholder-slate-700 font-mono"
                   />
                 ) : (
                   <select
                     value={selectedAirport}
                     onChange={e => setSelectedAirport(e.target.value)}
-                    className="input-field w-full rounded-xl px-4 py-3 text-base"
+                    className="input-field w-full rounded-xl px-4 py-3 text-base font-bold"
                   >
                     {OMAN_AIR_AIRPORTS.slice().sort((a, b) => a.city.localeCompare(b.city)).map(a => (
                       <option key={a.iata} value={a.iata}>{a.city} ({a.iata})</option>
@@ -261,99 +269,116 @@ function App() {
                 )}
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Calculation Date</label>
-                  <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="input-field w-full rounded-xl px-4 py-3 text-base" />
+                  <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Date</label>
+                  <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="input-field w-full rounded-xl px-4 py-3 text-base font-mono" />
                 </div>
               </div>
             </>
           )}
 
-          {/* Shared Inputs */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Flight Level</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">FL</span>
-                <input type="number" value={flightLevel} onChange={e => setFlightLevel(Number(e.target.value))} className="input-field w-full rounded-xl pl-8 pr-3 py-3 text-base" />
-              </div>
+          {/* New Flight Level Slider/Stepper */}
+          <div className="flex flex-col gap-2 mt-2">
+            <div className="flex justify-between items-center ml-1">
+              <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Flight Level</label>
+              <span className="text-xl font-black text-white font-mono">FL{flightLevel.toString().padStart(3, '0')}</span>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Method</label>
-              <select value={method} onChange={e => setMethod(e.target.value as IslamicMethod)} className="input-field w-full rounded-xl px-3 py-3 text-sm">
-                <option value="Dubai">Dubai (18.2°)</option>
-                <option value="MWL">MWL (18°)</option>
-                <option value="UmmAlQura">Umm Al-Qura</option>
-              </select>
+            <div className="flex items-center gap-3">
+              <button onClick={() => adjustFL(-10)} className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 hover:bg-slate-700 active:scale-95 transition-all">
+                <ChevronDown className="w-6 h-6" />
+              </button>
+              <input
+                type="range"
+                min="0" max="450" step="10"
+                value={flightLevel}
+                onChange={e => setFlightLevel(Number(e.target.value))}
+                className="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
+              />
+              <button onClick={() => adjustFL(10)} className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 hover:bg-slate-700 active:scale-95 transition-all">
+                <ChevronUp className="w-6 h-6" />
+              </button>
             </div>
           </div>
-          {error && <p className="text-red-400 text-[10px] font-bold text-center mt-1 uppercase tracking-tight">{error}</p>}
+
+          {/* Method */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] uppercase font-bold text-slate-500 ml-1 tracking-wider">Fajr Calculation Method</label>
+            <select value={method} onChange={e => setMethod(e.target.value as IslamicMethod)} className="input-field w-full rounded-xl px-3 py-2.5 text-xs font-bold bg-slate-900">
+              <option value="Dubai">Dubai (18.2°)</option>
+              <option value="MWL">MWL (18°)</option>
+              <option value="UmmAlQura">Umm Al-Qura</option>
+            </select>
+          </div>
+
+          {error && <p className="text-red-400 text-[10px] font-black text-center mt-1 uppercase tracking-tight">{error}</p>}
         </div>
 
         {/* Results */}
         {(result || flightResult) && (
           <div className="flex flex-col gap-4 animate-scale-in">
-            {/* Suhoor */}
-            <div className="glass-panel border-l-4 border-l-indigo-500 rounded-2xl p-5 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-indigo-400 mb-1">
+            {/* Suhoor Card */}
+            <div className="glass-panel border-l-4 border-l-indigo-600 rounded-2xl p-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-indigo-400">
                   <Moon className="w-4 h-4" />
-                  <span className="text-[10px] uppercase font-extrabold tracking-widest">Suhoor Ends</span>
+                  <span className="text-[10px] uppercase font-black tracking-widest">SUHOOR ENDS</span>
                 </div>
-                <div className="text-3xl font-bold font-mono text-white tracking-tighter">
-                  {mode === 'flight' ? formatUTC(flightResult?.fajr || null) : formatUTC(result?.fajr || null)}
+                <div className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-black tracking-tighter uppercase px-2">FL{flightLevel}</div>
+              </div>
+
+              <div className="flex items-baseline justify-between gap-4">
+                <div className="text-4xl font-black font-mono text-white tracking-tighter">
+                  {mode === 'flight' ? formatZ(flightResult?.fajr || null) : formatZ(result?.fajr || null)}
+                </div>
+
+                <div className="flex flex-col items-end">
+                  <span className="text-[9px] font-black text-slate-500 uppercase">Ground Level</span>
+                  <span className="text-sm font-mono font-bold text-slate-400">
+                    {mode === 'flight' ? formatZ(flightResult?.groundFajrAtCoords || null) : formatZ(result?.baseFajr || null)}
+                  </span>
                 </div>
               </div>
-              {mode === 'flight' && flightResult?.fajr && (
-                <div className="text-right">
-                  <div className="text-[8px] text-slate-500 font-bold mb-1">LATITUDE</div>
-                  <div className="text-[10px] font-mono font-bold text-indigo-400">{flightResult.fajrCoords?.lat.toFixed(1)}°</div>
-                </div>
-              )}
-              {mode === 'single' && result && (
-                <div className="text-right">
-                  <div className="text-[8px] text-slate-500 font-bold mb-1">ALT OFFSET</div>
-                  <div className="text-xs font-bold text-indigo-500">-{result.offsetMins}m</div>
-                </div>
-              )}
+
+              <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center">
+                <div className="text-[9px] font-bold text-slate-500">DIFF VS GROUND</div>
+                <div className="text-[11px] font-black text-indigo-400">-{mode === 'flight' && flightResult?.fajr && flightResult?.groundFajrAtCoords ? Math.round((flightResult.groundFajrAtCoords.getTime() - flightResult.fajr.getTime()) / 60000) : result?.offsetMins} MIN EARLY</div>
+              </div>
             </div>
 
-            {/* Iftar */}
-            <div className="glass-panel border-l-4 border-l-amber-500 rounded-2xl p-5 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-amber-500 mb-1">
+            {/* Iftar Card */}
+            <div className="glass-panel border-l-4 border-l-amber-500 rounded-2xl p-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-500">
                   <Sun className="w-4 h-4" />
-                  <span className="text-[10px] uppercase font-extrabold tracking-widest">Iftar Begins</span>
+                  <span className="text-[10px] uppercase font-black tracking-widest">IFTAR TIME</span>
                 </div>
-                <div className="text-3xl font-bold font-mono text-white tracking-tighter">
-                  {mode === 'flight' ? formatUTC(flightResult?.maghrib || null) : formatUTC(result?.maghrib || null)}
-                </div>
+                <div className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-500 text-[9px] font-black tracking-tighter uppercase">FL{flightLevel}</div>
               </div>
-              {mode === 'flight' && flightResult?.maghrib && (
-                <div className="text-right">
-                  <div className="text-[8px] text-slate-500 font-bold mb-1">LATITUDE</div>
-                  <div className="text-[10px] font-mono font-bold text-amber-500">{flightResult.maghribCoords?.lat.toFixed(1)}°</div>
-                </div>
-              )}
-              {mode === 'single' && result && (
-                <div className="text-right">
-                  <div className="text-[8px] text-slate-500 font-bold mb-1">ALT OFFSET</div>
-                  <div className="text-xs font-bold text-amber-500">+{result.offsetMins}m</div>
-                </div>
-              )}
-            </div>
 
-            {mode === 'flight' && (!flightResult?.fajr && !flightResult?.maghrib) && (
-              <div className="text-center p-4 glass-panel rounded-xl text-slate-500 text-xs italic font-medium">
-                Iftar or Suhoor does not occur during this flight.
+              <div className="flex items-baseline justify-between gap-4">
+                <div className="text-4xl font-black font-mono text-white tracking-tighter">
+                  {mode === 'flight' ? formatZ(flightResult?.maghrib || null) : formatZ(result?.maghrib || null)}
+                </div>
+
+                <div className="flex flex-col items-end">
+                  <span className="text-[9px] font-black text-slate-500 uppercase">Ground Level</span>
+                  <span className="text-sm font-mono font-bold text-slate-400">
+                    {mode === 'flight' ? formatZ(flightResult?.groundMaghribAtCoords || null) : formatZ(result?.baseMaghrib || null)}
+                  </span>
+                </div>
               </div>
-            )}
+
+              <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center">
+                <div className="text-[9px] font-bold text-slate-500">DIFF VS GROUND</div>
+                <div className="text-[11px] font-black text-amber-500">+{mode === 'flight' && flightResult?.maghrib && flightResult?.groundMaghribAtCoords ? Math.round((flightResult.maghrib.getTime() - flightResult.groundMaghribAtCoords.getTime()) / 60000) : result?.offsetMins} MIN LATER</div>
+              </div>
+            </div>
           </div>
         )}
 
-        <footer className="text-center pb-8">
-          <div className="flex items-center justify-center gap-1.5 text-slate-600 text-[10px] font-bold uppercase tracking-widest">
+        <footer className="text-center pb-8 flex flex-col gap-2">
+          <div className="flex items-center justify-center gap-1.5 text-slate-600 text-[9px] font-black uppercase tracking-[0.2em]">
             <Info className="w-3 h-3" />
-            Horizon Dip correction applied
+            Aero-Atmospheric Horizon Dip Active
           </div>
         </footer>
       </div>

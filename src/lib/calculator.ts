@@ -99,6 +99,8 @@ export interface FlightCalculationResult {
     maghrib: Date | null;
     fajrCoords: { lat: number, lng: number } | null;
     maghribCoords: { lat: number, lng: number } | null;
+    groundFajrAtCoords: Date | null;
+    groundMaghribAtCoords: Date | null;
 }
 
 /**
@@ -109,7 +111,7 @@ export function calculateFlightTimes(params: FlightParams): FlightCalculationRes
     const { origin, destination, departureTime, arrivalTime, flightLevel, method } = params;
     const durationMs = arrivalTime.getTime() - departureTime.getTime();
 
-    if (durationMs <= 0) return { fajr: null, maghrib: null, fajrCoords: null, maghribCoords: null };
+    if (durationMs <= 0) return { fajr: null, maghrib: null, fajrCoords: null, maghribCoords: null, groundFajrAtCoords: null, groundMaghribAtCoords: null };
 
     // Find Iftar (Maghrib)
     // We sample every 5 minutes for performance, then could refine (but 5 mins is usually enough for aviation)
@@ -117,8 +119,10 @@ export function calculateFlightTimes(params: FlightParams): FlightCalculationRes
 
     let foundMaghrib: Date | null = null;
     let maghribCoords: { lat: number, lng: number } | null = null;
+    let groundMaghribAtCoords: Date | null = null;
     let foundFajr: Date | null = null;
     let fajrCoords: { lat: number, lng: number } | null = null;
+    let groundFajrAtCoords: Date | null = null;
 
     for (let t = 0; t <= durationMs; t += stepMs) {
         const currentTime = new Date(departureTime.getTime() + t);
@@ -138,12 +142,14 @@ export function calculateFlightTimes(params: FlightParams): FlightCalculationRes
         if (!foundMaghrib && Math.abs(currentTime.getTime() - resultAtLocation.maghrib.getTime()) < stepMs) {
             foundMaghrib = resultAtLocation.maghrib;
             maghribCoords = currentCoords;
+            groundMaghribAtCoords = resultAtLocation.baseMaghrib;
         }
 
         // Check Fajr
         if (!foundFajr && Math.abs(currentTime.getTime() - resultAtLocation.fajr.getTime()) < stepMs) {
             foundFajr = resultAtLocation.fajr;
             fajrCoords = currentCoords;
+            groundFajrAtCoords = resultAtLocation.baseFajr;
         }
     }
 
@@ -151,7 +157,9 @@ export function calculateFlightTimes(params: FlightParams): FlightCalculationRes
         fajr: foundFajr,
         maghrib: foundMaghrib,
         fajrCoords,
-        maghribCoords
+        maghribCoords,
+        groundFajrAtCoords,
+        groundMaghribAtCoords
     };
 }
 
