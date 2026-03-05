@@ -1,8 +1,6 @@
-
-import React from 'react';
 import { WORLD_PATH, WORLD_MAP_WIDTH, WORLD_MAP_HEIGHT } from '../lib/worldData';
 
-interface MapProps {
+export interface MapProps {
     origin: { lat: number, lng: number };
     destination: { lat: number, lng: number };
     eventPoint?: { lat: number, lng: number } | null;
@@ -10,7 +8,7 @@ interface MapProps {
     color?: string;
 }
 
-const Map: React.FC<MapProps> = ({ origin, destination, eventPoint, label, color = '#f59e0b' }) => {
+export const Map = ({ origin, destination, eventPoint, label, color = '#f59e0b' }: MapProps) => {
     // Equirectangular projection (Plate Carrée)
     // Maps -180..180 to 0..800 and 90..-90 to 0..400
     const project = (lat: number, lng: number) => {

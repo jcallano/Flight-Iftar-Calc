@@ -326,88 +326,104 @@ function App() {
         {/* Results */}
         {(result || flightResult) && (
           <div className="flex flex-col gap-4 animate-scale-in">
+
+            {/* Always show flight map in flight mode */}
+            {mode === 'flight' && flightResult && originIata && destIata && (
+              <Map
+                origin={OMAN_AIR_AIRPORTS.find(a => a.iata === originIata)!}
+                destination={OMAN_AIR_AIRPORTS.find(a => a.iata === destIata)!}
+                eventPoint={flightResult.maghribCoords || flightResult.fajrCoords || null}
+                label={flightResult.maghribCoords ? "Iftar Position" : flightResult.fajrCoords ? "Suhoor Position" : "Flight Path"}
+                color={flightResult.maghribCoords ? "#f59e0b" : flightResult.fajrCoords ? "#6366f1" : "transparent"}
+              />
+            )}
+
             {/* Suhoor Card */}
-            <div className="glass-panel border-l-4 border-l-indigo-600 rounded-2xl p-5 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-indigo-400">
-                  <Moon className="w-4 h-4" />
-                  <span className="text-[10px] uppercase font-black tracking-widest">SUHOOR ENDS</span>
-                </div>
-                <div className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-black tracking-tighter uppercase px-2">FL{flightLevel}</div>
-              </div>
-
-              <div className="flex items-baseline justify-between gap-4">
-                <div className="text-4xl font-black font-mono text-white tracking-tighter">
-                  {mode === 'flight' ? formatZ(flightResult?.fajr || null) : formatZ(result?.fajr || null)}
+            {(mode === 'single' ? result?.fajr : flightResult?.fajr) && (
+              <div className="glass-panel border-l-4 border-l-indigo-600 rounded-2xl p-5 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-indigo-400">
+                    <Moon className="w-4 h-4" />
+                    <span className="text-[10px] uppercase font-black tracking-widest">SUHOOR ENDS</span>
+                  </div>
+                  <div className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-black tracking-tighter uppercase px-2">FL{flightLevel}</div>
                 </div>
 
-                <div className="flex flex-col items-end">
-                  <span className="text-[9px] font-black text-slate-500 uppercase">Ground Level</span>
-                  <span className="text-sm font-mono font-bold text-slate-400">
-                    {mode === 'flight' ? formatZ(flightResult?.groundFajrAtCoords || null) : formatZ(result?.baseFajr || null)}
-                  </span>
+                <div className="flex items-baseline justify-between gap-4">
+                  <div className="text-4xl font-black font-mono text-white tracking-tighter">
+                    {mode === 'flight' ? formatZ(flightResult?.fajr || null) : formatZ(result?.fajr || null)}
+                  </div>
+
+                  <div className="flex flex-col items-end">
+                    <span className="text-[9px] font-black text-slate-500 uppercase">Ground Level</span>
+                    <span className="text-sm font-mono font-bold text-slate-400">
+                      {mode === 'flight' ? formatZ(flightResult?.groundFajrAtCoords || null) : formatZ(result?.baseFajr || null)}
+                    </span>
+                  </div>
+                </div>
+
+                {mode === 'single' && result?.fajr && !manualCoords && selectedAirport && (
+                  <Map
+                    origin={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                    destination={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                    eventPoint={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                    label="Airport Location"
+                    color="#6366f1"
+                  />
+                )}
+
+                <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center">
+                  <div className="text-[9px] font-bold text-slate-500">DIFF VS GROUND</div>
+                  <div className="text-[11px] font-black text-indigo-400">-{mode === 'flight' && flightResult?.fajr && flightResult?.groundFajrAtCoords ? Math.round((flightResult.groundFajrAtCoords.getTime() - flightResult.fajr.getTime()) / 60000) : result?.offsetMins} MIN EARLY</div>
                 </div>
               </div>
-
-              {mode === 'flight' && flightResult?.fajr && flightResult.fajrCoords && (
-                <Map
-                  origin={OMAN_AIR_AIRPORTS.find(a => a.iata === originIata)!}
-                  destination={OMAN_AIR_AIRPORTS.find(a => a.iata === destIata)!}
-                  eventPoint={flightResult.fajrCoords}
-                  label="Estimated Position"
-                  color="#6366f1"
-                />
-              )}
-
-              <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center">
-                <div className="text-[9px] font-bold text-slate-500">DIFF VS GROUND</div>
-                <div className="text-[11px] font-black text-indigo-400">-{mode === 'flight' && flightResult?.fajr && flightResult?.groundFajrAtCoords ? Math.round((flightResult.groundFajrAtCoords.getTime() - flightResult.fajr.getTime()) / 60000) : result?.offsetMins} MIN EARLY</div>
-              </div>
-            </div>
+            )}
 
             {/* Iftar Card */}
-            <div className="glass-panel border-l-4 border-l-amber-500 rounded-2xl p-5 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-amber-500">
-                  <Sun className="w-4 h-4" />
-                  <span className="text-[10px] uppercase font-black tracking-widest">IFTAR TIME</span>
-                </div>
-                <div className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-500 text-[9px] font-black tracking-tighter uppercase">FL{flightLevel}</div>
-              </div>
-
-              <div className="flex items-baseline justify-between gap-4">
-                <div className="text-4xl font-black font-mono text-white tracking-tighter">
-                  {mode === 'flight' ? formatZ(flightResult?.maghrib || null) : formatZ(result?.maghrib || null)}
+            {(mode === 'single' ? result?.maghrib : flightResult?.maghrib) && (
+              <div className="glass-panel border-l-4 border-l-amber-500 rounded-2xl p-5 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-amber-500">
+                    <Sun className="w-4 h-4" />
+                    <span className="text-[10px] uppercase font-black tracking-widest">IFTAR TIME</span>
+                  </div>
+                  <div className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-500 text-[9px] font-black tracking-tighter uppercase">FL{flightLevel}</div>
                 </div>
 
-                <div className="flex flex-col items-end">
-                  <span className="text-[9px] font-black text-slate-500 uppercase">Ground Level</span>
-                  <span className="text-sm font-mono font-bold text-slate-400">
-                    {mode === 'flight' ? formatZ(flightResult?.groundMaghribAtCoords || null) : formatZ(result?.baseMaghrib || null)}
-                  </span>
+                <div className="flex items-baseline justify-between gap-4">
+                  <div className="text-4xl font-black font-mono text-white tracking-tighter">
+                    {mode === 'flight' ? formatZ(flightResult?.maghrib || null) : formatZ(result?.maghrib || null)}
+                  </div>
+
+                  <div className="flex flex-col items-end">
+                    <span className="text-[9px] font-black text-slate-500 uppercase">Ground Level</span>
+                    <span className="text-sm font-mono font-bold text-slate-400">
+                      {mode === 'flight' ? formatZ(flightResult?.groundMaghribAtCoords || null) : formatZ(result?.baseMaghrib || null)}
+                    </span>
+                  </div>
+                </div>
+
+                {mode === 'single' && result?.maghrib && !manualCoords && selectedAirport && (
+                  <Map
+                    origin={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                    destination={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                    eventPoint={OMAN_AIR_AIRPORTS.find(a => a.iata === selectedAirport)!}
+                    label="Airport Location"
+                    color="#f59e0b"
+                  />
+                )}
+
+                <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center">
+                  <div className="text-[9px] font-bold text-slate-500">DIFF VS GROUND</div>
+                  <div className="text-[11px] font-black text-amber-500">+{mode === 'flight' && flightResult?.maghrib && flightResult?.groundMaghribAtCoords ? Math.round((flightResult.maghrib.getTime() - flightResult.groundMaghribAtCoords.getTime()) / 60000) : result?.offsetMins} MIN LATER</div>
                 </div>
               </div>
-
-              {mode === 'flight' && flightResult?.maghrib && flightResult.maghribCoords && (
-                <Map
-                  origin={OMAN_AIR_AIRPORTS.find(a => a.iata === originIata)!}
-                  destination={OMAN_AIR_AIRPORTS.find(a => a.iata === destIata)!}
-                  eventPoint={flightResult.maghribCoords}
-                  label="Estimated Position"
-                  color="#f59e0b"
-                />
-              )}
-
-              <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center">
-                <div className="text-[9px] font-bold text-slate-500">DIFF VS GROUND</div>
-                <div className="text-[11px] font-black text-amber-500">+{mode === 'flight' && flightResult?.maghrib && flightResult?.groundMaghribAtCoords ? Math.round((flightResult.maghrib.getTime() - flightResult.groundMaghribAtCoords.getTime()) / 60000) : result?.offsetMins} MIN LATER</div>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
         {mode === 'flight' && flightResult && !flightResult.fajr && !flightResult.maghrib && (
-          <div className="glass-panel rounded-2xl p-8 text-center animate-scale-in">
+          <div className="glass-panel rounded-2xl p-8 text-center animate-scale-in mt-4">
             <div className="inline-flex p-3 bg-slate-800 rounded-full mb-3">
               <Info className="w-5 h-5 text-slate-500" />
             </div>
