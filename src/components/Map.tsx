@@ -1,4 +1,8 @@
-import { WORLD_PATH, WORLD_MAP_WIDTH, WORLD_MAP_HEIGHT } from '../lib/worldData';
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from 'react-leaflet';
+import * as L from 'leaflet';
+
+// Import Leaflet CSS is handled centrally in index.css
 
 export interface MapProps {
     origin: { lat: number, lng: number };
@@ -8,80 +12,72 @@ export interface MapProps {
     color?: string;
 }
 
+// Helper to fit bounding box to our markers accurately
+function FitBounds({ origin, destination, eventPoint }: MapProps) {
+    const map = useMap();
+
+    useEffect(() => {
+        const bounds = L.latLngBounds([origin.lat, origin.lng], [destination.lat, destination.lng]);
+        if (eventPoint) {
+            bounds.extend([eventPoint.lat, eventPoint.lng]);
+        }
+
+        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 });
+    }, [map, origin, destination, eventPoint]);
+
+    return null;
+}
+
 export const Map = ({ origin, destination, eventPoint, label, color = '#f59e0b' }: MapProps) => {
-    // Equirectangular projection (Plate Carrée)
-    // Maps -180..180 to 0..800 and 90..-90 to 0..400
-    const project = (lat: number, lng: number) => {
-        const x = (lng + 180) * (WORLD_MAP_WIDTH / 360);
-        const y = (90 - lat) * (WORLD_MAP_HEIGHT / 180);
-        return { x, y };
-    };
 
-    const pOrigin = project(origin.lat, origin.lng);
-    const pDest = project(destination.lat, destination.lng);
-    const pEvent = eventPoint ? project(eventPoint.lat, eventPoint.lng) : null;
+    const posOrigin: [number, number] = [origin.lat, origin.lng];
+    const posDest: [number, number] = [destination.lat, destination.lng];
+    const posEvent: [number, number] | null = eventPoint ? [eventPoint.lat, eventPoint.lng] : null;
 
-    // Zoom into the relevant area for better visibility
-    // We calculate a bounding box with some padding
-    const minX = Math.min(pOrigin.x, pDest.x, pEvent?.x ?? pOrigin.x) - 50;
-    const maxX = Math.max(pOrigin.x, pDest.x, pEvent?.x ?? pDest.x) + 50;
-    const minY = Math.min(pOrigin.y, pDest.y, pEvent?.y ?? pOrigin.y) - 50;
-    const maxY = Math.max(pOrigin.y, pDest.y, pEvent?.y ?? pDest.y) + 50;
-
-    const width = maxX - minX;
-    const height = maxY - minY;
-
-    // Aspect ratio check and centering
-    const viewBox = `${minX} ${minY} ${width} ${height}`;
+    const pathPositions = [posOrigin, posDest];
 
     return (
-        <div className="w-full bg-slate-950/40 rounded-xl border border-slate-800 p-2 overflow-hidden shadow-inner mt-2">
-            <svg viewBox={viewBox} className="w-full h-auto">
-                {/* World Landmass / Borders */}
-                <path
-                    d={WORLD_PATH}
-                    fill="#1e293b"
-                    stroke="#334155"
-                    strokeWidth="0.5"
-                    vectorEffect="non-scaling-stroke"
+        <div className="w-full rounded-xl border border-slate-700/60 overflow-hidden shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] mt-2 relative shrink-0" style={{ height: '300px' }}>
+            <MapContainer
+                center={posOrigin}
+                zoom={4}
+                scrollWheelZoom={false}
+                zoomControl={false}
+                attributionControl={false}
+                style={{ height: '100%', width: '100%', background: '#090f19' }} // Dark ocean fallback
+            >
+                {/* 
+                    CartoDB Positron Dark theme for maps 
+                    Provides a flawless aesthetic matching our dark App
+                 */}
+                <TileLayer
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 />
 
-                {/* Flight Path Line */}
-                <line
-                    x1={pOrigin.x} y1={pOrigin.y}
-                    x2={pDest.x} y2={pDest.y}
-                    stroke="#4f46e5"
-                    strokeWidth="1.5"
-                    strokeDasharray="3 2"
-                    opacity="0.6"
-                    vectorEffect="non-scaling-stroke"
-                />
+                <FitBounds origin={origin} destination={destination} eventPoint={eventPoint} />
 
-                {/* Origin & Destination Nodes */}
-                <circle cx={pOrigin.x} cy={pOrigin.y} r="2.5" fill="#6366f1" stroke="#0f172a" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
-                <circle cx={pDest.x} cy={pDest.y} r="2.5" fill="#6366f1" stroke="#0f172a" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                {/* Flight Path */}
+                <Polyline positions={pathPositions} pathOptions={{ color: '#4f46e5', weight: 2, dashArray: '5, 5', opacity: 0.6 }} />
 
-                {/* Estimated Event Position (Iftar/Suhoor) */}
-                {pEvent && (
-                    <g>
-                        <circle
-                            cx={pEvent.x} cy={pEvent.y} r="6"
-                            fill={color} className="animate-ping opacity-30"
-                            vectorEffect="non-scaling-stroke"
-                        />
-                        <circle
-                            cx={pEvent.x} cy={pEvent.y} r="4"
-                            fill={color} stroke="#fff" strokeWidth="1"
-                            vectorEffect="non-scaling-stroke"
-                        />
-                    </g>
+                {/* Origin / Dest Markers */}
+                <CircleMarker center={posOrigin} radius={5} pathOptions={{ fillColor: '#6366f1', color: '#0f172a', weight: 1, fillOpacity: 1 }} />
+                <CircleMarker center={posDest} radius={5} pathOptions={{ fillColor: '#6366f1', color: '#0f172a', weight: 1, fillOpacity: 1 }} />
+
+                {/* Event Marker (Iftar / Suhoor) */}
+                {posEvent && (
+                    <>
+                        <CircleMarker center={posEvent} radius={12} pathOptions={{ fillColor: color, stroke: false, fillOpacity: 0.2 }} className="animate-pulse" />
+                        <CircleMarker center={posEvent} radius={5} pathOptions={{ fillColor: color, color: '#ffffff', weight: 1.5, fillOpacity: 1 }} />
+                    </>
                 )}
-            </svg>
+            </MapContainer>
+
+            {/* Floating Label */}
             {label && (
-                <div className="mt-2 flex justify-between items-center px-1">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
+                <div className="absolute top-2 right-2 bg-slate-900/90 border border-slate-700 px-2.5 py-1 rounded backdrop-blur-sm z-[1000] shadow-lg flex flex-col items-end">
+                    <span className="text-[9px] font-black text-slate-400 justify-end uppercase tracking-widest leading-none mb-1">{label}</span>
                     {eventPoint && (
-                        <span className="text-[9px] font-mono font-bold text-slate-400">
+                        <span className="text-xs font-mono font-bold text-slate-200 leading-none" style={{ color: color }}>
                             {Math.abs(eventPoint.lat).toFixed(1)}°{eventPoint.lat >= 0 ? 'N' : 'S'} {Math.abs(eventPoint.lng).toFixed(1)}°{eventPoint.lng >= 0 ? 'E' : 'W'}
                         </span>
                     )}

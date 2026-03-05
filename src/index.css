@@ -1,4 +1,15 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/* Leaflet dark-style overrides */
+.leaflet-container {
+  background: #090f19 !important;
+  font-family: inherit;
+}
+
+.leaflet-control-container .leaflet-routing-container-hide {
+  display: none;
+}
 
 @theme {
   --color-dark-surface: #1e293b;
