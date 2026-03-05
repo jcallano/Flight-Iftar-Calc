@@ -22,13 +22,15 @@ function App() {
   const now = new Date();
   const later = new Date(now.getTime() + 4 * 60 * 60 * 1000);
 
-  const toLocalISO = (date: Date) => {
-    const tzOffset = date.getTimezoneOffset() * 60000;
-    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+  const toUTCISO = (date: Date) => {
+    // We want the literal UTC numbers to populate the local-datetime input
+    // Since the input box treats the value as "wall clock", we return the ISO string without Z
+    // but the actual values will be the UTC ones.
+    return date.toISOString().slice(0, 16);
   };
 
-  const [departureTime, setDepartureTime] = useState<string>(toLocalISO(now));
-  const [arrivalTime, setArrivalTime] = useState<string>(toLocalISO(later));
+  const [departureTime, setDepartureTime] = useState<string>(toUTCISO(now));
+  const [arrivalTime, setArrivalTime] = useState<string>(toUTCISO(later));
 
   const [flightLevel, setFlightLevel] = useState<number>(350);
   const [method, setMethod] = useState<IslamicMethod>('Dubai');
@@ -100,8 +102,16 @@ function App() {
       if (!origin || !dest) return;
 
       try {
-        const depDate = new Date(departureTime);
-        const arrDate = new Date(arrivalTime);
+        // App settings are explicitly labeled as Zulu (UTC)
+        // We append 'Z' to the string to force UTC parsing by the browser
+        const depDate = new Date(departureTime + ':00Z');
+        const arrDate = new Date(arrivalTime + ':00Z');
+
+        if (isNaN(depDate.getTime()) || isNaN(arrDate.getTime())) {
+          setError('Invalid date/time format');
+          setFlightResult(null);
+          return;
+        }
 
         if (arrDate <= depDate) {
           setError('Arrival must be after departure');
@@ -372,6 +382,17 @@ function App() {
                 <div className="text-[11px] font-black text-amber-500">+{mode === 'flight' && flightResult?.maghrib && flightResult?.groundMaghribAtCoords ? Math.round((flightResult.maghrib.getTime() - flightResult.groundMaghribAtCoords.getTime()) / 60000) : result?.offsetMins} MIN LATER</div>
               </div>
             </div>
+          </div>
+        )}
+
+        {mode === 'flight' && flightResult && !flightResult.fajr && !flightResult.maghrib && (
+          <div className="glass-panel rounded-2xl p-8 text-center animate-scale-in">
+            <div className="inline-flex p-3 bg-slate-800 rounded-full mb-3">
+              <Info className="w-5 h-5 text-slate-500" />
+            </div>
+            <p className="text-slate-400 text-sm font-medium italic">
+              Neither Iftar nor Suhoor ends occur during this specific flight window.
+            </p>
           </div>
         )}
 

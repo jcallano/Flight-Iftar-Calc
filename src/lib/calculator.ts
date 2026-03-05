@@ -117,6 +117,11 @@ export function calculateFlightTimes(params: FlightParams): FlightCalculationRes
     // We sample every 5 minutes for performance, then could refine (but 5 mins is usually enough for aviation)
     const stepMs = 5 * 60 * 1000;
 
+    // Check state at start
+    const startResult = calculateTimes(origin.lat, origin.lng, departureTime, flightLevel, method);
+    const alreadyPastMaghrib = departureTime >= startResult.maghrib;
+    const alreadyPastFajr = departureTime >= startResult.fajr;
+
     let foundMaghrib: Date | null = null;
     let maghribCoords: { lat: number, lng: number } | null = null;
     let groundMaghribAtCoords: Date | null = null;
@@ -137,19 +142,23 @@ export function calculateFlightTimes(params: FlightParams): FlightCalculationRes
             method
         );
 
-        // Check Maghrib
-        // If currentTime is close to maghrib time (within half a step)
-        if (!foundMaghrib && Math.abs(currentTime.getTime() - resultAtLocation.maghrib.getTime()) < stepMs) {
-            foundMaghrib = resultAtLocation.maghrib;
-            maghribCoords = currentCoords;
-            groundMaghribAtCoords = resultAtLocation.baseMaghrib;
+        // Check Maghrib (Iftar)
+        if (!foundMaghrib && currentTime >= resultAtLocation.maghrib) {
+            // Only count if it wasn't already passed at departure
+            if (!alreadyPastMaghrib) {
+                foundMaghrib = resultAtLocation.maghrib;
+                maghribCoords = currentCoords;
+                groundMaghribAtCoords = resultAtLocation.baseMaghrib;
+            }
         }
 
-        // Check Fajr
-        if (!foundFajr && Math.abs(currentTime.getTime() - resultAtLocation.fajr.getTime()) < stepMs) {
-            foundFajr = resultAtLocation.fajr;
-            fajrCoords = currentCoords;
-            groundFajrAtCoords = resultAtLocation.baseFajr;
+        // Check Fajr (Suhoor ends)
+        if (!foundFajr && currentTime >= resultAtLocation.fajr) {
+            if (!alreadyPastFajr) {
+                foundFajr = resultAtLocation.fajr;
+                fajrCoords = currentCoords;
+                groundFajrAtCoords = resultAtLocation.baseFajr;
+            }
         }
     }
 
