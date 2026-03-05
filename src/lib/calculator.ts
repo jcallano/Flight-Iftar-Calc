@@ -72,6 +72,90 @@ export interface IftarCalculationResult {
 }
 
 /**
+ * Linearly interpolates between two coordinates based on a fraction (0 to 1).
+ */
+export function interpolateCoordinates(
+    start: { lat: number, lng: number },
+    end: { lat: number, lng: number },
+    fraction: number
+): { lat: number, lng: number } {
+    return {
+        lat: start.lat + (end.lat - start.lat) * fraction,
+        lng: start.lng + (end.lng - start.lng) * fraction
+    };
+}
+
+export interface FlightParams {
+    origin: { lat: number, lng: number };
+    destination: { lat: number, lng: number };
+    departureTime: Date; // UTC
+    arrivalTime: Date;   // UTC
+    flightLevel: number;
+    method: IslamicMethod;
+}
+
+export interface FlightCalculationResult {
+    fajr: Date | null;
+    maghrib: Date | null;
+    fajrCoords: { lat: number, lng: number } | null;
+    maghribCoords: { lat: number, lng: number } | null;
+}
+
+/**
+ * Iteratively find if and when Iftar or Suhoor occurs during a flight.
+ * Steps through the flight time and checks if the current time matches the calculated prayer time at that location.
+ */
+export function calculateFlightTimes(params: FlightParams): FlightCalculationResult {
+    const { origin, destination, departureTime, arrivalTime, flightLevel, method } = params;
+    const durationMs = arrivalTime.getTime() - departureTime.getTime();
+
+    if (durationMs <= 0) return { fajr: null, maghrib: null, fajrCoords: null, maghribCoords: null };
+
+    // Find Iftar (Maghrib)
+    // We sample every 5 minutes for performance, then could refine (but 5 mins is usually enough for aviation)
+    const stepMs = 5 * 60 * 1000;
+
+    let foundMaghrib: Date | null = null;
+    let maghribCoords: { lat: number, lng: number } | null = null;
+    let foundFajr: Date | null = null;
+    let fajrCoords: { lat: number, lng: number } | null = null;
+
+    for (let t = 0; t <= durationMs; t += stepMs) {
+        const currentTime = new Date(departureTime.getTime() + t);
+        const fraction = t / durationMs;
+        const currentCoords = interpolateCoordinates(origin, destination, fraction);
+
+        const resultAtLocation = calculateTimes(
+            currentCoords.lat,
+            currentCoords.lng,
+            currentTime,
+            flightLevel,
+            method
+        );
+
+        // Check Maghrib
+        // If currentTime is close to maghrib time (within half a step)
+        if (!foundMaghrib && Math.abs(currentTime.getTime() - resultAtLocation.maghrib.getTime()) < stepMs) {
+            foundMaghrib = resultAtLocation.maghrib;
+            maghribCoords = currentCoords;
+        }
+
+        // Check Fajr
+        if (!foundFajr && Math.abs(currentTime.getTime() - resultAtLocation.fajr.getTime()) < stepMs) {
+            foundFajr = resultAtLocation.fajr;
+            fajrCoords = currentCoords;
+        }
+    }
+
+    return {
+        fajr: foundFajr,
+        maghrib: foundMaghrib,
+        fajrCoords,
+        maghribCoords
+    };
+}
+
+/**
  * Calculate Iftar and Suhoor times given parameters.
  */
 export function calculateTimes(
